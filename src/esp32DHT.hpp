@@ -44,7 +44,7 @@ class DHT {
  public:
   DHT();
   ~DHT();
-  void setup(uint8_t pin, rmt_channel_t channel = RMT_CHANNEL_0);  // setPin does complete setup of DHT lib
+  void setup(gpio_num_t pin, rmt_channel_t channel = RMT_CHANNEL_0);  // setPin does complete setup of DHT lib
   void onData(esp32DHTInternals::OnData_CB callback);
   void onError(esp32DHTInternals::OnError_CB callback);
   void read();
@@ -62,7 +62,7 @@ class DHT {
   virtual float _getHumidity() = 0;
 
  private:
-  uint8_t _pin;
+  gpio_num_t _pin;
   rmt_channel_t _channel;
   esp32DHTInternals::OnData_CB _onData;
   esp32DHTInternals::OnError_CB _onError;
