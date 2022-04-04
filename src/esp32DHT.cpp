@@ -134,7 +134,7 @@ void DHT::_readSensor(DHT* instance) {
 }
 
 void DHT::_decode(rmt_item32_t* data, int numItems) {
-  ESP_LOGI(TAG, "Decoding %d items", numItems);
+  ESP_LOGD(TAG, "Decoding %d items", numItems);
   uint8_t pulse = data[0].duration0 + data[0].duration1;
   if (numItems < 41) {
     _status = 5;
