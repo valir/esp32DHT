@@ -58,7 +58,7 @@ void DHT::setup(gpio_num_t pin, rmt_channel_t channel) {
   ESP_ERROR_CHECK( rmt_config(&config) );
   ESP_ERROR_CHECK( rmt_driver_install(_channel, 400, 0) );  // 400 words for ringbuffer containing pulse trains from DHT
   rmt_get_ringbuf_handle(_channel, &_ringBuf);
-  xTaskCreate((TaskFunction_t)&_readSensor, "esp32DHT", 2048, this, 5, &_task);
+  xTaskCreate((TaskFunction_t)&_readSensor, "esp32DHT", 4096, this, 5, &_task);
   ESP_ERROR_CHECK(gpio_set_direction(_pin, GPIO_MODE_OUTPUT_OD));
   ESP_ERROR_CHECK(gpio_set_level(_pin, 1));
 }
