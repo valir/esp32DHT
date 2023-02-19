@@ -23,9 +23,14 @@ SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
 #include <hal/gpio_types.h>
+#include <esp_pm.h>
 #include "esp32DHT.hpp"  // NOLINT
 
+#if CONFIG_PM_ENABLE
+#define RMT_CLK_DIV 1
+#else
 #define RMT_CLK_DIV 80
+#endif
 
 static const char* TAG = "DHT";
 
@@ -43,6 +48,10 @@ DHT::~DHT() {
   vTaskDelete(_task);
 }
 
+#ifdef CONFIG_PM_ENABLE
+static esp_pm_lock_handle_t pm_lock;
+#endif
+
 void DHT::setup(gpio_num_t pin, rmt_channel_t channel) {
   _pin = pin;
   _channel = channel;
@@ -55,6 +64,10 @@ void DHT::setup(gpio_num_t pin, rmt_channel_t channel) {
   config.rx_config.filter_ticks_thresh = 10;
   config.rx_config.idle_threshold = 1000;
   config.clk_div = RMT_CLK_DIV;
+#if CONFIG_PM_ENABLE
+  config.flags = RMT_CHANNEL_FLAGS_AWARE_DFS;
+  ESP_ERROR_CHECK(esp_pm_lock_create(ESP_PM_APB_FREQ_MAX, 0, "rmt", &pm_lock));
+#endif
   ESP_ERROR_CHECK( rmt_config(&config) );
   ESP_ERROR_CHECK( rmt_driver_install(_channel, 400, 0) );  // 400 words for ringbuffer containing pulse trains from DHT
   rmt_get_ringbuf_handle(_channel, &_ringBuf);
@@ -107,6 +120,9 @@ void DHT::_readSensor(DHT* instance) {
 
     // block and wait for notification
     ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+#if CONFIG_PM_ENABLE
+    ESP_ERROR_CHECK(esp_pm_lock_acquire(pm_lock));
+#endif
 
     // give start signal to sensor
     ESP_ERROR_CHECK(gpio_set_level(instance->_pin, 0));
@@ -117,6 +133,9 @@ void DHT::_readSensor(DHT* instance) {
 
     ESP_ERROR_CHECK( rmt_rx_start(instance->_channel, 1) );
     ESP_ERROR_CHECK( rmt_set_gpio(instance->_channel, RMT_MODE_RX, instance->_pin, false) );
+#if CONFIG_PM_ENABLE
+    ESP_ERROR_CHECK(esp_pm_lock_release(pm_lock));
+#endif
 
     // blocks until data is available or timeouts
     rmt_item32_t* items = static_cast<rmt_item32_t*>(xRingbufferReceive(instance->_ringBuf, &rx_size, pdMS_TO_TICKS(2500)));
